@@ -30,7 +30,7 @@ from itertools import chain
 from typing import Optional
 
 import datasets
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 
 import evaluate
 import transformers
@@ -133,6 +133,9 @@ class DataTrainingArguments:
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
     )
+    load_from_disk: Optional[str] = field(
+        default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
+    )
     dataset_config_name: Optional[str] = field(
         default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
     )
@@ -199,7 +202,8 @@ class DataTrainingArguments:
     )
 
     def __post_init__(self):
-        if self.dataset_name is None and self.train_file is None and self.validation_file is None:
+        if self.dataset_name is None and self.train_file is None and self.validation_file is None \
+                and self.load_from_disk is None:
             raise ValueError("Need either a dataset name or a training/validation file.")
         else:
             if self.train_file is not None:
@@ -301,6 +305,8 @@ def main():
                 cache_dir=model_args.cache_dir,
                 use_auth_token=True if model_args.use_auth_token else None,
             )
+    elif data_args.load_from_disk is not None:
+        raw_datasets = load_from_disk(data_args.load_from_disk)
     else:
         data_files = {}
         if data_args.train_file is not None:
@@ -443,6 +449,8 @@ def main():
                 load_from_cache_file=not data_args.overwrite_cache,
                 desc="Running tokenizer on dataset line_by_line",
             )
+    elif data_args.load_from_disk is not None:
+        tokenized_datasets = raw_datasets
     else:
         # Otherwise, we tokenize every text, then concatenate them together before splitting them in smaller parts.
         # We use `return_special_tokens_mask=True` because DataCollatorForLanguageModeling (see below) is more

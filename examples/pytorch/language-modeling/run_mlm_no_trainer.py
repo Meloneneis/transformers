@@ -33,7 +33,7 @@ from pathlib import Path
 
 import datasets
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -72,6 +72,12 @@ def parse_args():
         type=str,
         default=None,
         help="The name of the dataset to use (via the datasets library).",
+    )
+    parser.add_argument(
+        "--load_from_disk",
+        type=str,
+        default=None,
+        help="The path of the local dataset",
     )
     parser.add_argument(
         "--dataset_config_name",
@@ -230,7 +236,7 @@ def parse_args():
     args = parser.parse_args()
 
     # Sanity checks
-    if args.dataset_name is None and args.train_file is None and args.validation_file is None:
+    if args.dataset_name is None and args.train_file is None and args.validation_file is None and args.load_from_disk is None:
         raise ValueError("Need either a dataset name or a training/validation file.")
     else:
         if args.train_file is not None:
@@ -325,6 +331,8 @@ def main():
                 args.dataset_config_name,
                 split=f"train[{args.validation_split_percentage}%:]",
             )
+    elif args.load_from_disk is not None:
+        raw_datasets = load_from_disk(args.load_from_disk)
     else:
         data_files = {}
         if args.train_file is not None:
@@ -434,6 +442,8 @@ def main():
                 load_from_cache_file=not args.overwrite_cache,
                 desc="Running tokenizer on dataset line_by_line",
             )
+    elif args.load_from_disk is not None:
+        tokenized_datasets = raw_datasets
     else:
         # Otherwise, we tokenize every text, then concatenate them together before splitting them in smaller parts.
         # We use `return_special_tokens_mask=True` because DataCollatorForLanguageModeling (see below) is more
